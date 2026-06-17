@@ -33,7 +33,7 @@
 | vm-lb | Standard_B2ats_v2 | 2 | 1 GB | Nginx Load Balancer — Round-robin + Keepalive 32 + Serve Frontend | $7.81 |
 | vm-be1 | Standard_B2als_v2 | 2 | 4 GB | Backend #1 — Flask + Gunicorn gevent (5 workers) | $31.24 |
 | vm-be2 | Standard_B2als_v2 | 2 | 4 GB | Backend #2 — Flask + Gunicorn gevent (3 workers) + MongoDB 7.0 | $31.24 |
-| **Total** | | **$70.29/bulan** |
+| **Total** | | | | | **$70.29/bulan** |
 
 > **Budget maksimal:** $75/bulan (sisa $4.71 digunakan sebagai buffer biaya network egress)
 
