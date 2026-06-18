@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Processing Service</title>
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Auth overlay */
+    #auth-section {
+      max-width: 420px;
+      margin: 60px auto;
+      padding: 32px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    }
+    #auth-section h2 { margin-bottom: 20px; }
+    .tab-buttons { display: flex; gap: 8px; margin-bottom: 24px; }
+    .tab-btn {
+      flex: 1; padding: 10px; border: 2px solid #e0e0e0;
+      background: #f5f5f5; border-radius: 8px; cursor: pointer;
+      font-weight: 600; font-size: 14px; transition: all .2s;
+    }
+    .tab-btn.active {
+      background: #2563eb; color: #fff; border-color: #2563eb;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Main app */
+    #app-section { display: none; }
+
+    /* User info bar */
+    #user-bar {
+      background: #1e293b; color: #fff;
+      padding: 10px 24px; display: flex;
+      justify-content: space-between; align-items: center;
+      border-radius: 8px; margin-bottom: 24px;
+      font-size: 14px;
+    }
+    #user-bar button {
+      background: #ef4444; color: #fff; border: none;
+      padding: 6px 16px; border-radius: 6px; cursor: pointer;
+      font-size: 13px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; margin-bottom: 4px; font-weight: 500; font-size: 14px; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 9px 12px; border: 1.5px solid #e0e0e0;
+      border-radius: 7px; font-size: 14px; box-sizing: border-box;
+    }
+    button[type=submit], .btn-primary {
+      width: 100%; padding: 11px; background: #2563eb; color: #fff;
+      border: none; border-radius: 8px; font-size: 15px;
+      font-weight: 600; cursor: pointer; margin-top: 4px;
+      transition: background .2s;
+    }
+    button[type=submit]:hover, .btn-primary:hover { background: #1d4ed8; }
+
+    .result-box {
+      margin-top: 12px; padding: 12px; border-radius: 8px;
+      font-size: 13px; white-space: pre-wrap; font-family: monospace;
+      display: none;
+    }
+    .result-box.success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+    .result-box.error   { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
+    .result-box.show    { display: block; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🛒 Order Processing Service</h1>
+      <p class="subtitle">Final Project Teknologi Komputasi Awan</p>
+    </header>
+
+    <!-- ═══════════════ AUTH SECTION ═══════════════ -->
+    <div id="auth-section">
+      <h2>Masuk ke Akun</h2>
+      <div class="tab-buttons">
+        <button class="tab-btn active" onclick="switchTab('login')">Login</button>
+        <button class="tab-btn" onclick="switchTab('register')">Register</button>
+      </div>
+
+      <!-- Login -->
+      <div id="tab-login" class="tab-panel active">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="email@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="Password" />
+        </div>
+        <button type="submit" onclick="doLogin()">Login</button>
+        <div id="login-result" class="result-box"></div>
+      </div>
+
+      <!-- Register -->
+      <div id="tab-register" class="tab-panel">
+        <div class="form-group">
+          <label>Nama</label>
+          <input type="text" id="reg-name" placeholder="Nama lengkap" />
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="email@example.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="reg-password" placeholder="Password" />
+        </div>
+        <button type="submit" onclick="doRegister()">Daftar</button>
+        <div id="register-result" class="result-box"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ APP SECTION ═══════════════ -->
+    <div id="app-section">
+      <div id="user-bar">
+        <span id="user-info">👤 Loading...</span>
+        <button onclick="doLogout()">Logout</button>
+      </div>
+
+      <!-- Buat Pesanan -->
+      <section class="card">
+        <h2>Buat Pesanan Baru</h2>
+        <div class="form-group">
+          <label>Nama Produk</label>
+          <input type="text" id="product-search" placeholder="Ketik nama produk, contoh: Laptop" oninput="searchProduct(this.value)" />
+          <div id="product-suggestions" style="border:1px solid #e0e0e0;border-radius:7px;margin-top:4px;display:none;max-height:160px;overflow-y:auto;background:#fff;"></div>
+          <input type="hidden" id="selected-product-id" />
+          <div id="selected-product-info" style="font-size:13px;color:#2563eb;margin-top:4px;"></div>
+        </div>
+        <div class="form-group">
+          <label>Jumlah</label>
+          <input type="number" id="quantity" min="1" value="1" />
+        </div>
+        <button class="btn-primary" onclick="createOrder()">Buat Pesanan</button>
+        <div id="create-result" class="result-box"></div>
+      </section>
+
+      <!-- Cek Status -->
+      <section class="card">
+        <h2>Cek Status Pesanan</h2>
+        <div class="form-group">
+          <label>Order ID</label>
+          <input type="text" id="order-id" placeholder="Masukkan order_id" />
+        </div>
+        <button class="btn-primary" onclick="getOrderStatus()">Cek Status</button>
+        <div id="status-result" class="result-box"></div>
+      </section>
+
+      <!-- Update Status -->
+      <section class="card">
+        <h2>Update Status Pesanan</h2>
+        <div class="form-group">
+          <label>Order ID</label>
+          <input type="text" id="update-order-id" placeholder="Masukkan order_id" />
+        </div>
+        <div class="form-group">
+          <label>Status Baru</label>
+          <select id="new-status">
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        <button class="btn-primary" onclick="updateOrderStatus()">Update Status</button>
+        <div id="update-result" class="result-box"></div>
+      </section>
+
+      <!-- Riwayat Pesanan -->
+      <section class="card">
+        <h2>Riwayat Pesanan</h2>
+        <button class="btn-primary" onclick="getOrderHistory()">Tampilkan Riwayat</button>
+        <div id="history-result" class="result-box"></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://48.193.46.109";
+    let token = localStorage.getItem("token") || null;
+    let currentUser = JSON.parse(localStorage.getItem("user") || "null");
+
+    // ── Init ──
+    window.onload = () => {
+      if (token && currentUser) showApp();
+    };
+
+    function showApp() {
+      document.getElementById("auth-section").style.display = "none";
+      document.getElementById("app-section").style.display = "block";
+      document.getElementById("user-info").textContent =
+        `👤 ${currentUser.name} (${currentUser.role})`;
+    }
+
+    let searchTimer = null;
+    async function searchProduct(query) {
+      const suggestions = document.getElementById("product-suggestions");
+      document.getElementById("selected-product-id").value = "";
+      document.getElementById("selected-product-info").textContent = "";
+      if (!query || query.length < 2) { suggestions.style.display = "none"; return; }
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/products?search=${encodeURIComponent(query)}&limit=5`, { headers: authHeaders() });
+          const data = await res.json();
+          const products = data.data || [];
+          if (products.length === 0) { suggestions.style.display = "none"; return; }
+          suggestions.innerHTML = "";
+          products.forEach(p => {
+            const div = document.createElement("div");
+            div.style = "padding:10px 12px;cursor:pointer;font-size:14px;border-bottom:1px solid #f0f0f0;";
+            div.textContent = `${p.name} — Rp ${p.price.toLocaleString("id-ID")}`;
+            div.onmouseover = () => div.style.background = "#f0f7ff";
+            div.onmouseout  = () => div.style.background = "#fff";
+            div.onclick = () => {
+              document.getElementById("product-search").value = p.name;
+              document.getElementById("selected-product-id").value = p._id;
+              document.getElementById("selected-product-info").textContent = `✅ Dipilih: ${p.name} — Rp ${p.price.toLocaleString("id-ID")}`;
+              suggestions.style.display = "none";
+            };
+            suggestions.appendChild(div);
+          });
+          suggestions.style.display = "block";
+        } catch(e) { suggestions.style.display = "none"; }
+      }, 300);
+    }
+
+    function showAuth() {
+      document.getElementById("auth-section").style.display = "block";
+      document.getElementById("app-section").style.display = "none";
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll(".tab-btn").forEach((b, i) =>
+        b.classList.toggle("active", (i === 0) === (tab === "login")));
+      document.getElementById("tab-login").classList.toggle("active", tab === "login");
+      document.getElementById("tab-register").classList.toggle("active", tab === "register");
+    }
+
+    function showResult(id, data, isError = false) {
+      const el = document.getElementById(id);
+      el.className = "result-box show " + (isError ? "error" : "success");
+      el.textContent = JSON.stringify(data, null, 2);
+    }
+
+    function authHeaders() {
+      return { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
+    }
+
+    // ── Auth ──
+    async function doLogin() {
+      const email = document.getElementById("login-email").value.trim();
+      const password = document.getElementById("login-password").value;
+      try {
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { showResult("login-result", data, true); return; }
+        token = data.token;
+        currentUser = data.user;
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(currentUser));
+        showApp();
+      } catch (e) {
+        showResult("login-result", { error: e.message }, true);
+      }
+    }
+
+    async function doRegister() {
+      const name = document.getElementById("reg-name").value.trim();
+      const email = document.getElementById("reg-email").value.trim();
+      const password = document.getElementById("reg-password").value;
+      try {
+        const res = await fetch(`${API_BASE}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { showResult("register-result", data, true); return; }
+        token = data.token;
+        currentUser = data.user;
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(currentUser));
+        showApp();
+      } catch (e) {
+        showResult("register-result", { error: e.message }, true);
+      }
+    }
+
+    function doLogout() {
+      token = null; currentUser = null;
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      showAuth();
+    }
+
+    // ── Orders ──
+    async function createOrder() {
+      const productId = document.getElementById("selected-product-id").value;
+      const quantity = parseInt(document.getElementById("quantity").value);
+      if (!productId) {
+        showResult("create-result", { error: "Cari dan pilih produk dulu dari hasil pencarian" }, true); return;
+      }
+      if (!quantity || quantity < 1) {
+        showResult("create-result", { error: "Jumlah harus minimal 1" }, true); return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/orders`, {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({
+            items: [{ product_id: productId, qty: quantity }]
+          })
+        });
+        const data = await res.json();
+        showResult("create-result", data, !res.ok);
+      } catch (e) {
+        showResult("create-result", { error: e.message }, true);
+      }
+    }
+
+    async function getOrderStatus() {
+      const orderId = document.getElementById("order-id").value.trim();
+      if (!orderId) { showResult("status-result", { error: "Order ID wajib diisi" }, true); return; }
+      try {
+        const res = await fetch(`${API_BASE}/orders/${orderId}`, { headers: authHeaders() });
+        const data = await res.json();
+        showResult("status-result", data, !res.ok);
+      } catch (e) {
+        showResult("status-result", { error: e.message }, true);
+      }
+    }
+
+    async function updateOrderStatus() {
+      const orderId = document.getElementById("update-order-id").value.trim();
+      const status = document.getElementById("new-status").value;
+      if (!orderId) { showResult("update-result", { error: "Order ID wajib diisi" }, true); return; }
+      try {
+        const res = await fetch(`${API_BASE}/orders/${orderId}/status`, {
+          method: "PUT",
+          headers: authHeaders(),
+          body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        showResult("update-result", data, !res.ok);
+      } catch (e) {
+        showResult("update-result", { error: e.message }, true);
+      }
+    }
+
+    async function getOrderHistory() {
+      try {
+        const res = await fetch(`${API_BASE}/orders`, { headers: authHeaders() });
+        const data = await res.json();
+        showResult("history-result", data, !res.ok);
+      } catch (e) {
+        showResult("history-result", { error: e.message }, true);
+      }
+    }
+  </script>
+</body>
+</html>
