@@ -197,6 +197,16 @@ Dengan budget $75/bulan, menambah VM keempat khusus untuk database akan memaksa 
 
 > **Catatan:** Jika budget bertambah, prioritas pertama adalah memindahkan MongoDB ke VM dedicated agar vm-be2 dapat menjalankan 5 worker penuh, kemudian menambahkan backend ketiga untuk meningkatkan total kapasitas.
 
+## 2.8 Estimasi Performa
+
+| Kondisi | Estimasi RPS |
+|---|:---:|
+| Tanpa optimasi (sync worker, tanpa index) | ~50–70 |
+| + MongoDB index (`created_at`, `order_id`) | ~100–130 |
+| + Gevent worker | ~130–170 |
+| + Nginx keepalive 32 | ~150–190 |
+
+Target minimum untuk nilai load testing: **≥ 150 RPS**
 ---
 
 # 3. Implementasi
@@ -225,26 +235,5 @@ Dengan budget $75/bulan, menambah VM keempat khusus untuk database akan memaksa 
 
 
 
-
-
-# Arsitektur Cloud — FP TKA 2026
-## Order Processing Service (Microsoft Azure)
-
-
-
-
-
-
-
-## Estimasi Performa
-
-| Kondisi | Estimasi RPS |
-|---|:---:|
-| Tanpa optimasi (sync worker, tanpa index) | ~50–70 |
-| + MongoDB index (`created_at`, `order_id`) | ~100–130 |
-| + Gevent worker | ~130–170 |
-| + Nginx keepalive 32 | ~150–190 |
-
-Target minimum untuk nilai load testing: **≥ 150 RPS**
 
 
