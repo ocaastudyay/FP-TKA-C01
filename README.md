@@ -211,9 +211,238 @@ Target minimum untuk nilai load testing: **≥ 150 RPS**
 
 # 3. Implementasi
 
-> Dokumentasi implementasi MongoDB, Backend, dan Nginx akan ditambahkan setelah hasil dari M3, M4, M5, dan M6 dikumpulkan.
+## 3.1 Implementasi Database MongoDB (M3)
+
+MongoDB 7.0 digunakan sebagai database utama pada sistem Order Processing Service. Database ditempatkan pada VM `vm-be2` dengan alamat private `10.0.0.7` sehingga dapat diakses oleh backend melalui jaringan internal Azure Virtual Network.
+
+### Spesifikasi Database
+
+| Parameter       | Nilai       |
+| --------------- | ----------- |
+| Database Engine | MongoDB 7.0 |
+| Database Name   | `orderdb`   |
+| Host            | vm-be2      |
+| Private IP      | 10.0.0.7    |
+| Port            | 27017       |
+| Authentication  | Enabled     |
 
 ---
+
+### Instalasi dan Konfigurasi MongoDB
+
+Tahapan implementasi MongoDB meliputi:
+
+1. Instalasi MongoDB 7.0 dan MongoDB Database Tools.
+2. Aktivasi service MongoDB menggunakan systemd.
+3. Pembuatan user administrator database.
+4. Aktivasi authentication untuk meningkatkan keamanan akses database.
+5. Konfigurasi `bindIp` agar backend dapat mengakses database melalui jaringan internal Azure.
+6. Restore dataset awal menggunakan `mongorestore`.
+
+Konfigurasi utama MongoDB:
+
+```yaml
+net:
+  port: 27017
+  bindIp: 0.0.0.0
+
+security:
+  authorization: enabled
+```
+
+Konfigurasi tersebut memungkinkan MongoDB menerima koneksi dari backend server sambil tetap menerapkan mekanisme autentikasi.
+
+---
+
+### Restore Database
+
+Dataset awal diperoleh dari repository Final Project dan direstore ke database `orderdb`.
+
+Hasil restore:
+
+| Collection | Jumlah Data |
+| ---------- | ----------- |
+| users      | 505         |
+| products   | 96          |
+| orders     | 10000       |
+
+Data tersebut digunakan sebagai sumber data utama selama proses pengujian endpoint maupun load testing.
+
+---
+
+### Optimasi Database Menggunakan Index
+
+Untuk meningkatkan performa query, dibuat beberapa index berdasarkan pola akses endpoint aplikasi.
+
+#### Collection Orders
+
+| Index                | Fungsi                         |
+| -------------------- | ------------------------------ |
+| created_at (-1)      | Sorting order terbaru          |
+| order_id (unique)    | Pencarian order berdasarkan ID |
+| user_id + created_at | Riwayat order pengguna         |
+| status               | Statistik dan agregasi admin   |
+
+#### Collection Products
+
+| Index                  | Fungsi                 |
+| ---------------------- | ---------------------- |
+| is_active + category   | Filter kategori produk |
+| is_active + created_at | Sorting produk aktif   |
+
+#### Collection Users
+
+| Index          | Fungsi                        |
+| -------------- | ----------------------------- |
+| email (unique) | Login dan registrasi pengguna |
+
+Pembuatan index dilakukan berdasarkan analisis query yang digunakan oleh aplikasi Flask dan skenario load testing sehingga dapat mengurangi waktu pencarian data saat sistem menerima beban tinggi.
+
+---
+
+### Integrasi Backend dengan MongoDB
+
+MongoDB ditempatkan pada VM `vm-be2` dengan alamat private `10.0.0.7`.
+
+| Backend                   | Host Database |
+| ------------------------- | ------------- |
+| Backend Server 1 (vm-be1) | 10.0.0.7      |
+| Backend Server 2 (vm-be2) | localhost     |
+
+Penggunaan private IP memungkinkan komunikasi database dilakukan melalui Azure Virtual Network tanpa melewati jaringan publik sehingga lebih aman dan memiliki latensi yang lebih rendah.
+
+---
+
+### Kendala yang Ditemui
+
+| Permasalahan                             | Solusi                                                      |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| Authentication gagal saat restore        | Menggunakan URI dengan kredensial administrator             |
+| MongoDB tidak dapat diakses dari backend | Mengubah bindIp menjadi 0.0.0.0                             |
+| mongorestore tidak tersedia              | Menginstal mongodb-database-tools                           |
+| Error konfigurasi authorization          | Memindahkan section security ke level root pada mongod.conf |
+
+---
+
+### Dokumentasi
+
+*(Tambahkan dokumentasi/screenshot hasil implementasi MongoDB dari M3 di sini)*
+
+---
+
+## 3.2 Implementasi Backend Server 1 (M4)
+
+Backend Server 1 ditempatkan pada VM `vm-be1` dengan alamat private `10.0.0.5` dan public IP `48.193.41.35`. Server ini bertugas menangani request aplikasi yang diteruskan oleh Nginx Load Balancer serta berkomunikasi dengan MongoDB yang berada pada VM `vm-be2`.
+
+### Spesifikasi Backend
+
+| Parameter        | Nilai        |
+| ---------------- | ------------ |
+| VM               | vm-be1       |
+| Public IP        | 48.193.41.35 |
+| Private IP       | 10.0.0.5     |
+| Operating System | Ubuntu 22.04 |
+| Framework        | Flask        |
+| WSGI Server      | Gunicorn     |
+| Port             | 5000         |
+| Database Host    | 10.0.0.7     |
+| Database         | MongoDB 7.0  |
+
+---
+
+### Instalasi Backend
+
+Tahap deployment backend dilakukan dengan:
+
+1. Instalasi Python 3, Pip, dan Git.
+2. Clone repository Final Project.
+3. Instalasi seluruh dependency menggunakan `requirements.txt`.
+4. Pengujian aplikasi secara manual.
+5. Konfigurasi service menggunakan systemd.
+6. Deployment menggunakan Gunicorn.
+
+Pendekatan ini memastikan aplikasi dapat diverifikasi terlebih dahulu sebelum dijalankan secara permanen sebagai service.
+
+---
+
+### Pengujian Koneksi Database
+
+Sebelum backend dijalankan menggunakan Gunicorn, dilakukan pengujian manual menggunakan Flask development server.
+
+Backend dikonfigurasi untuk terhubung ke MongoDB menggunakan jaringan internal Azure sehingga komunikasi antar layanan tidak melewati jaringan publik.
+
+Pengujian dilakukan dengan mengakses endpoint produk dan memastikan data berhasil diambil dari database MongoDB pada `vm-be2`.
+
+---
+
+### Deployment Menggunakan Gunicorn
+
+Backend dijalankan menggunakan Gunicorn sebagai production WSGI server.
+
+Konfigurasi yang digunakan:
+
+| Parameter         | Nilai        |
+| ----------------- | ------------ |
+| Worker Type       | gthread      |
+| Worker            | 5            |
+| Thread per Worker | 4            |
+| Total Thread      | 20           |
+| Timeout           | 30 detik     |
+| Binding Address   | 0.0.0.0:5000 |
+
+Dengan konfigurasi tersebut Backend Server 1 mampu menangani beberapa request secara bersamaan tanpa harus membuat proses baru untuk setiap koneksi yang masuk.
+
+---
+
+### Konfigurasi Systemd
+
+Aplikasi dikonfigurasi sebagai service bernama:
+
+```text
+flask-be1.service
+```
+
+Konfigurasi ini memberikan beberapa keuntungan:
+
+* Service berjalan otomatis saat VM melakukan booting.
+* Service akan restart otomatis jika mengalami crash.
+* Backend tetap aktif meskipun administrator logout dari terminal.
+
+Pendekatan ini meningkatkan reliabilitas aplikasi selama proses pengujian maupun deployment.
+
+---
+
+### Pemilihan Worker gthread
+
+Rencana awal deployment menggunakan worker tipe **gevent**. Namun selama implementasi ditemukan konflik dependency pada Ubuntu 22.04 yang menyebabkan Gunicorn gagal menjalankan worker gevent.
+
+Sebagai solusi digunakan worker tipe **gthread** yang merupakan implementasi bawaan Gunicorn.
+
+| Aspek                   | gevent       | gthread         |
+| ----------------------- | ------------ | --------------- |
+| Model Konkurensi        | Green Thread | Native Thread   |
+| Dependency Tambahan     | Ya           | Tidak           |
+| Kompleksitas Deployment | Lebih tinggi | Lebih sederhana |
+| Cocok untuk I/O Bound   | Ya           | Ya              |
+
+Karena aplikasi lebih banyak melakukan operasi I/O ke MongoDB dibanding komputasi CPU-intensive, penggunaan gthread tetap mampu memberikan performa yang baik.
+
+---
+
+### Analisis Konfigurasi Backend
+
+Konfigurasi 5 worker dan 4 thread dipilih untuk memanfaatkan sumber daya VM secara optimal.
+
+Ketika sebuah thread sedang menunggu respons dari MongoDB, thread lain tetap dapat melayani request yang masuk. Karakteristik ini membuat model gthread cukup efektif untuk aplikasi berbasis database seperti Order Processing Service.
+
+Selain itu, backend dikonfigurasi menggunakan fitur auto-restart pada systemd sehingga layanan tetap tersedia apabila terjadi crash atau restart pada VM.
+
+---
+
+### Dokumentasi
+
+*(Tambahkan dokumentasi/screenshot hasil implementasi Backend Server 1 dari M4 di sini)*
+
 
 # 4. Hasil Pengujian Endpoint
 
