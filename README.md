@@ -788,23 +788,286 @@ Pendekatan ini menyederhanakan deployment, mengurangi kompleksitas konfigurasi c
 
 # 4. Hasil Pengujian Endpoint
 
-> Dokumentasi Postman dan frontend akan ditambahkan setelah hasil dari M7 dikumpulkan.
+Pengujian endpoint dilakukan menggunakan Postman untuk memastikan seluruh API dapat berfungsi sesuai dengan spesifikasi sistem. Pengujian mencakup autentikasi pengguna, pengelolaan produk, pengelolaan pesanan, endpoint administrator, serta health check service.
+
+---
+
+## 4.1 Pengujian Authentication Endpoint
+
+### Login User
+
+Endpoint login digunakan untuk melakukan autentikasi pengguna dan menghasilkan JWT token yang digunakan pada endpoint yang memerlukan otorisasi.
+
+**Endpoint**
+
+```http
+POST /auth/login
+```
+
+### Dokumentasi
+
+<img width="1037" height="802" alt="WhatsApp Image 2026-06-20 at 20 20 31" src="https://github.com/user-attachments/assets/140df773-c915-42a2-9986-9c1770348d35" />
+
+---
+
+## 4.2 Pengujian Product Endpoint
+
+### Menampilkan Daftar Produk
+
+Endpoint ini digunakan untuk menampilkan seluruh produk aktif yang tersedia pada database.
+
+**Endpoint**
+
+```http
+GET /products
+```
+
+### Dokumentasi
+
+<img width="1041" height="792" alt="WhatsApp Image 2026-06-20 at 20 20 31 (1)" src="https://github.com/user-attachments/assets/6367612b-3408-42f0-95c8-f4f23d56b1d8" />
+
+---
+
+## 4.3 Pengujian Order Endpoint
+
+### Membuat Pesanan
+
+Endpoint ini digunakan untuk membuat pesanan baru oleh pengguna yang telah terautentikasi.
+
+**Endpoint**
+
+```http
+POST /orders
+```
+
+### Dokumentasi
+
+<img width="1046" height="792" alt="image" src="https://github.com/user-attachments/assets/5843cf2a-6921-47a4-a241-38919d3ab85e" />
+
+---
+
+### Menampilkan Riwayat Pesanan
+
+Endpoint ini digunakan untuk menampilkan daftar pesanan yang dimiliki pengguna.
+
+**Endpoint**
+
+```http
+GET /orders
+```
+
+### Dokumentasi
+
+<img width="1055" height="800" alt="WhatsApp Image 2026-06-20 at 20 20 31 (2)" src="https://github.com/user-attachments/assets/9e634bea-626d-4309-9ef3-f5f5f67161b6" />
+
+---
+
+## 4.4 Pengujian Admin Endpoint
+
+### Statistik Sistem
+
+Endpoint administrator digunakan untuk menampilkan statistik transaksi dan informasi sistem.
+
+**Endpoint**
+
+```http
+GET /admin/stats
+```
+
+### Dokumentasi
+
+<img width="1037" height="790" alt="WhatsApp Image 2026-06-20 at 20 20 32" src="https://github.com/user-attachments/assets/3ccdb44d-7f4b-4133-bfa5-efef0f541e5a" />
+
+---
+
+## 4.5 Pengujian Health Check Endpoint
+
+Endpoint health check digunakan untuk memastikan backend service berjalan dengan baik dan dapat menerima request.
+
+**Endpoint**
+
+```http
+GET /health
+```
+
+### Dokumentasi
+
+<img width="1042" height="298" alt="WhatsApp Image 2026-06-20 at 20 20 32 (1)" src="https://github.com/user-attachments/assets/2223f360-5289-4e90-b455-56731ddc52d9" />
+
+---
+
+## 4.6 Pengujian Admin Endpoint
+
+Endpoint administrator digunakan untuk menampilkan statistik sistem berdasarkan data transaksi yang tersimpan pada database MongoDB.
+
+### Statistik Sistem
+
+Endpoint ini menampilkan informasi agregasi seperti jumlah pesanan, status pesanan, dan data statistik lain yang digunakan oleh administrator untuk memantau kondisi sistem.
+
+**Endpoint**
+
+```http
+GET /admin/stats
+```
+
+### Hasil Pengujian
+
+Pengujian dilakukan menggunakan Postman dengan akun administrator yang telah berhasil melakukan autentikasi. Endpoint berhasil mengembalikan data statistik dengan status **200 OK**, menunjukkan bahwa proses agregasi data pada MongoDB berjalan dengan baik. Data yang ditampilkan mencakup jumlah transaksi dan total pendapatan dari berbagai kota yang tersimpan pada database.
+### Dokumentasi
+
+<img width="1037" height="790" alt="WhatsApp Image 2026-06-20 at 20 20 32 (2)" src="https://github.com/user-attachments/assets/2a086497-699b-4392-a44e-40d3aaf38913" />
 
 ---
 
 # 5. Hasil Load Testing
 
-> Hasil pengujian Locust untuk lima skenario akan ditambahkan setelah seluruh pengujian selesai dilakukan.
+Load testing dilakukan menggunakan **Locust** untuk mengevaluasi performa sistem ketika menerima beban pengguna secara bersamaan. Pengujian dilakukan pada lima skenario berbeda untuk mengukur response time, throughput, serta tingkat kegagalan request.
 
 ---
+
+## 5.1 Skenario 1 (100 User)
+
+### Hasil Pengujian
+
+| Metrik | Nilai |
+|---------|---------|
+| Average Response Time | 23 ms (P50) |
+| Requests per Second (RPS) | 37.43 |
+| Failure Rate | 0% |
+
+### Dokumentasi
+
+<img width="1497" height="902" alt="WhatsApp Image 2026-06-20 at 20 41 47" src="https://github.com/user-attachments/assets/ccf960b6-7d3c-46bd-899b-b2317829b942" />
+
+### Analisis
+
+Pada pengujian dengan 100 pengguna simultan, sistem mampu mempertahankan throughput sebesar **37.43 request per second** tanpa kegagalan request. Nilai median response time berada pada kisaran **23 ms** dan menunjukkan bahwa seluruh komponen sistem, mulai dari Nginx Load Balancer, Flask Backend, hingga MongoDB, mampu menangani beban ringan dengan sangat baik.
+
+---
+
+## 5.2 Skenario 2 (300 User)
+
+### Hasil Pengujian
+
+| Metrik | Nilai |
+|---------|---------|
+| Average Response Time | 24 ms (P50) |
+| Requests per Second (RPS) | 115.37 |
+| Failure Rate | 0% |
+
+### Dokumentasi
+
+<img width="1393" height="903" alt="WhatsApp Image 2026-06-20 at 20 42 13" src="https://github.com/user-attachments/assets/72530134-89e9-4926-82ad-524d091963d9" />
+
+### Analisis
+
+Ketika jumlah pengguna meningkat menjadi **300 user**, throughput meningkat hingga **115.37 request per second** tanpa adanya request yang gagal. Nilai response time tetap rendah sehingga menunjukkan bahwa mekanisme load balancing dan konfigurasi backend masih mampu melakukan scaling secara efektif.
+
+---
+
+## 5.3 Skenario 3 (500 User)
+
+### Hasil Pengujian
+
+| Metrik | Nilai |
+| :--- | :--- |
+| **Average Response Time** | 26 ms (P50) / 190 ms (P95) |
+| **Requests per Second (RPS)** | 182.96 |
+| **Failure Rate** | 0% |
+
+### Dokumentasi
+
+<img width="1492" height="907" alt="WhatsApp Image 2026-06-20 at 20 42 46" src="https://github.com/user-attachments/assets/5934ab93-5f2b-44b5-af11-99283f48980a" />
+
+### Analisis
+
+Pada pengujian dengan beban maksimal mencapai **500 user**, sistem menunjukkan performa yang sangat stabil dan optimal. Throughput berhasil meningkat secara signifikan hingga mencapai **182.96 request per second (RPS)** tanpa adanya kegagalan sistem (*Failure Rate* tetap **0%**). 
+
+Dari sisi pemrosesan, *Response Time* pada *50th percentile* (P50) berada di angka **26 ms**, sementara pada kondisi puncak atau *95th percentile* (P95) tercatat sebesar **190 ms** (mengalami perbaikan waktu respons yang signifikan setelah stabil, dari yang sebelumnya sempat menyentuh angka di atas 1500 ms pada awal proses *ramp-up*). Hal ini membuktikan bahwa infrastruktur backend dan mekanisme *load balancing* mampu menangani lonjakan beban tinggi (*high concurrency*) secara efisien serta mempertahankan konsistensi performa dengan sangat baik.
+
+## 5.4 Skenario 4 (550 User)
+
+### Konfigurasi Pengujian
+
+| Parameter | Nilai |
+|------------|---------|
+| Jumlah User | 550 |
+| Durasi Pengujian | 4 menit 15 detik |
+
+### Hasil Pengujian
+
+| Metrik | Nilai |
+|---------|---------|
+| Average Response Time | 151.76 ms |
+| Requests per Second (RPS) | 201.4 |
+| Failure Rate | 0% |
+
+### Dokumentasi
+
+<img width="1195" height="881" alt="WhatsApp Image 2026-06-19 at 07 59 43" src="https://github.com/user-attachments/assets/bdae3a9f-e675-4b0c-8c0e-b55bb4c246f8" />
+
+### Analisis
+
+Pada pengujian dengan **550 pengguna simultan**, sistem menghasilkan throughput sebesar **201.4 request per second** dengan tingkat kegagalan **0%**. Total request yang berhasil diproses mencapai **51.257 request** selama pengujian berlangsung.
+
+Endpoint yang paling sering diakses adalah:
+
+| Endpoint | Total Request |
+|-----------|---------------|
+| `/products?[filters]` | 28.021 |
+| `/products/<id>` | 13.958 |
+| `/admin/stats` | 3.477 |
+| `/orders` | 2.596 |
+
+Hasil ini menunjukkan bahwa sistem masih mampu menangani beban tinggi secara stabil dengan performa yang baik.
+
+---
+
+## 5.5 Skenario 5 (600 User)
+
+### Hasil Pengujian
+
+| Metrik | Nilai |
+|---------|---------|
+| Average Response Time | 95 ms (P50) |
+| Requests per Second (RPS) | 193.1 |
+| Failure Rate | 1% |
+
+### Dokumentasi
+
+<img width="1343" height="911" alt="WhatsApp Image 2026-06-20 at 20 45 26" src="https://github.com/user-attachments/assets/1e45ab87-e4b2-4e2a-9eca-b053e85e7cb4" />
+
+### Analisis
+
+Pada beban **600 pengguna simultan**, sistem masih mampu mempertahankan throughput mendekati **200 request per second**. Namun mulai muncul kegagalan request sebesar **1%**, yang menunjukkan bahwa sistem mulai mendekati batas kapasitas optimalnya.
+
+Walaupun demikian, performa sistem masih tergolong baik karena sebagian besar request tetap dapat diproses dengan sukses.
+
+---
+
+## 5.6 Analisis Keseluruhan Load Testing
+
+### Ringkasan Hasil
+
+| Skenario | User | Avg Response Time | RPS | Failure Rate |
+|----------|------|-------------------|------|--------------|
+| 1 | 100 | 23 ms | 37.43 | 0% |
+| 2 | 300 | 24 ms | 115.37 | 0% |
+| 3 | 500 | Menunggu Data | Menunggu Data | Menunggu Data |
+| 4 | 550 | 151.76 ms | 201.4 | 0% |
+| 5 | 600 | 95 ms | 193.1 | 1% |
+
+### Analisis
+
+Berdasarkan seluruh pengujian yang dilakukan, sistem menunjukkan kemampuan scaling yang baik seiring bertambahnya jumlah pengguna simultan.
+
+Pada skenario **100 hingga 300 pengguna**, response time tetap rendah dan tidak ditemukan kegagalan request. Saat jumlah pengguna meningkat menjadi **550 pengguna**, throughput mencapai lebih dari **200 request per second** dengan tingkat keberhasilan **100%**.
+
+Pada skenario tertinggi yaitu **600 pengguna**, sistem masih mampu mempertahankan throughput yang tinggi meskipun mulai muncul kegagalan sebesar **1%**. Kondisi ini menunjukkan bahwa sistem mulai mendekati batas kapasitasnya namun masih mampu beroperasi secara stabil.
+
+Secara keseluruhan, kombinasi **Nginx Load Balancer**, **Flask Backend (Gunicorn)**, dan **MongoDB** berhasil menangani ratusan pengguna secara bersamaan dengan tingkat reliabilitas yang tinggi. Hasil pengujian menunjukkan bahwa arsitektur cloud yang diimplementasikan telah memenuhi kebutuhan performa dan skalabilitas untuk skenario Order Processing Service.
 
 # 6. Kesimpulan dan Saran
 
 > Kesimpulan akhir akan disusun berdasarkan hasil implementasi dan load testing yang diperoleh selama proyek berlangsung.
-
-
-
-
-
-
 
