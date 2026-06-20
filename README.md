@@ -9,12 +9,13 @@
 | No | Nama | NRP |
 | :---: | :--- | :---: |
 | 1 | Diva Aulia Rosa | 5027241003 |
-| 2 | Zaenal Mustofa | 5027241018 |
-| 3 | Raya Ahmad Syarif | 5027241041 |
-| 4 | Daniswara Fausta Novanto | 5027241050 |
-| 5 | Hafiz Ramadhan | 5027241096 |
-| 6 | Naruna Vicranthyo Putra Gangga | 5027241105 |
-| 7 | Adinda Cahya Pramesti | 5027241117 |
+| 2 | Shinta Alya Ramadani | 5027241016 |
+| 3 | Zaenal Mustofa | 5027241018 |
+| 4 | Raya Ahmad Syarif | 5027241041 |
+| 5 | Daniswara Fausta Novanto | 5027241050 |
+| 6 | Hafiz Ramadhan | 5027241096 |
+| 7 | Naruna Vicranthyo Putra Gangga | 5027241105 |
+| 8 | Adinda Cahya Pramesti | 5027241117 |
 
 ---
 
