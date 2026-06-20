@@ -553,6 +553,239 @@ Dengan total 12 thread aktif, backend tetap mampu melayani banyak request secara
 <img width="1217" height="296" alt="WhatsApp Image 2026-06-17 at 22 36 49" src="https://github.com/user-attachments/assets/847d8a17-f642-4188-9a78-0ea404cf6400" />
 <img width="1361" height="637" alt="WhatsApp Image 2026-06-17 at 22 36 54" src="https://github.com/user-attachments/assets/f8098d90-b1a7-4880-b77f-92b3dd3465b4" />
 
+---
+
+## 3.4 Implementasi Nginx Load Balancer (M6)
+
+Nginx digunakan sebagai Load Balancer untuk mendistribusikan request dari client ke dua backend server yang berjalan secara paralel, yaitu Backend Server 1 (`vm-be1`) dan Backend Server 2 (`vm-be2`).
+
+Arsitektur ini bertujuan untuk meningkatkan ketersediaan layanan (availability), membagi beban trafik (load distribution), serta mengurangi kemungkinan bottleneck pada satu server backend.
+
+### Spesifikasi Infrastruktur
+
+| VM     | Public IP      | Private IP | Port |
+| ------ | -------------- | ---------- | ---- |
+| vm-lb  | 48.193.46.109  | 10.0.0.4   | 80   |
+| vm-be1 | 48.193.41.35   | 10.0.0.5   | 5000 |
+| vm-be2 | 70.153.145.176 | 10.0.0.7   | 5000 |
+
+---
+
+### Instalasi Nginx
+
+Nginx diinstal pada VM `vm-lb` menggunakan package manager Ubuntu.
+
+Tahapan implementasi meliputi:
+
+1. Clone repository Final Project.
+2. Instalasi Nginx.
+3. Konfigurasi upstream backend.
+4. Konfigurasi reverse proxy.
+5. Aktivasi virtual host.
+6. Pengujian konfigurasi.
+7. Aktivasi service Nginx.
+
+---
+
+### Konfigurasi Load Balancer
+
+Nginx dikonfigurasi menggunakan mekanisme upstream yang mengarah ke dua backend server.
+
+```nginx
+upstream backend {
+    server 10.0.0.5:5000;
+    server 10.0.0.7:5000;
+    keepalive 32;
+}
+```
+
+Konfigurasi tersebut memungkinkan Nginx mendistribusikan request secara otomatis ke kedua backend server menggunakan metode round-robin bawaan Nginx.
+
+---
+
+### Reverse Proxy API
+
+Semua endpoint API diarahkan ke backend cluster menggunakan konfigurasi:
+
+```nginx
+location ~ ^/(order|orders|auth|products|admin|health) {
+    proxy_pass http://backend;
+}
+```
+
+Pendekatan ini memungkinkan frontend dan backend diakses melalui domain/IP yang sama sehingga tidak memerlukan konfigurasi CORS tambahan.
+
+Endpoint yang dilayani antara lain:
+
+* `/auth`
+* `/products`
+* `/orders`
+* `/order`
+* `/admin`
+* `/health`
+
+---
+
+### Optimasi Menggunakan Keepalive
+
+Konfigurasi:
+
+```nginx
+keepalive 32;
+```
+
+digunakan untuk mempertahankan koneksi antara Nginx dan backend server sehingga koneksi tidak perlu dibuat ulang untuk setiap request.
+
+Keuntungan konfigurasi ini:
+
+* Mengurangi latency.
+* Menurunkan overhead TCP connection.
+* Meningkatkan Request Per Second (RPS).
+* Mengurangi penggunaan CPU backend.
+
+---
+
+### Verifikasi Konfigurasi
+
+Setelah konfigurasi selesai dibuat, dilakukan validasi menggunakan:
+
+```bash
+sudo nginx -t
+```
+
+Kemudian service dijalankan menggunakan:
+
+```bash
+sudo systemctl restart nginx
+sudo systemctl enable nginx
+```
+
+Keberhasilan implementasi ditunjukkan dengan status service Nginx yang berada pada kondisi **active (running)**.
+
+---
+
+### Analisis Implementasi Load Balancer
+
+Dengan adanya Nginx Load Balancer, request pengguna tidak lagi bergantung pada satu backend server.
+
+Apabila salah satu backend mengalami beban tinggi, request berikutnya dapat diteruskan ke backend lainnya sehingga utilisasi resource menjadi lebih merata.
+
+Selain itu, penggunaan private IP antar VM meningkatkan keamanan komunikasi karena trafik backend tidak melewati jaringan publik.
+
+---
+
+### Dokumentasi
+
+#### Validasi Konfigurasi Nginx
+
+*(Tambahkan screenshot hasil `sudo nginx -t` di sini)*
+
+#### Status Service Nginx
+
+*(Tambahkan screenshot hasil `sudo systemctl status nginx` di sini)*
+
+#### Health Check Backend
+
+*(Tambahkan screenshot hasil `curl http://localhost/health` di sini)*
+
+---
+
+## 3.5 Implementasi Frontend Deployment (M6)
+
+Frontend aplikasi ditempatkan pada VM Load Balancer (`vm-lb`) dan disajikan langsung oleh Nginx melalui direktori web root.
+
+Dengan pendekatan ini, seluruh layanan dapat diakses melalui satu alamat IP yang sama, yaitu:
+
+```text
+http://48.193.46.109
+```
+
+---
+
+### Deployment Frontend
+
+File frontend yang berasal dari repository dipindahkan ke direktori:
+
+```text
+/var/www/fp-tka/
+```
+
+Struktur file yang digunakan:
+
+```text
+/var/www/fp-tka/
+├── index.html
+└── styles.css
+```
+
+Nginx dikonfigurasi untuk menyajikan file tersebut sebagai halaman utama aplikasi.
+
+---
+
+### Integrasi dengan Backend API
+
+Frontend telah dimodifikasi agar dapat berkomunikasi langsung dengan backend melalui Load Balancer.
+
+Fitur yang tersedia meliputi:
+
+* Login pengguna.
+* Registrasi pengguna.
+* Pencarian produk.
+* Pembuatan pesanan.
+* Menampilkan riwayat pesanan.
+* Integrasi JWT Authentication.
+
+Seluruh request API dikirim ke endpoint yang sama sehingga pengguna tidak perlu mengetahui lokasi backend yang sebenarnya.
+
+---
+
+### Pengujian Fungsionalitas
+
+Pengujian dilakukan menggunakan akun administrator yang tersedia pada database:
+
+| Parameter | Nilai                                               |
+| --------- | --------------------------------------------------- |
+| Email     | [admin1@tka.its.ac.id](mailto:admin1@tka.its.ac.id) |
+| Password  | Admin@12345                                         |
+
+Fitur yang diuji:
+
+1. Login.
+2. Registrasi akun.
+3. Pencarian produk.
+4. Pembuatan pesanan.
+5. Menampilkan riwayat pesanan.
+
+Seluruh fitur berhasil berjalan melalui Nginx Load Balancer dan terhubung dengan backend cluster.
+
+---
+
+### Analisis Implementasi Frontend
+
+Dengan menempatkan frontend pada Nginx, pengguna hanya perlu mengakses satu alamat IP untuk menggunakan seluruh layanan aplikasi.
+
+Pendekatan ini menyederhanakan deployment, mengurangi kompleksitas konfigurasi client, serta memberikan pengalaman pengguna yang lebih baik karena frontend dan backend berada dalam satu entry point yang sama.
+
+---
+
+### Dokumentasi
+
+#### Halaman Login
+
+*(Tambahkan screenshot halaman Login di browser di sini)*
+
+#### Halaman Utama Setelah Login
+
+*(Tambahkan screenshot dashboard atau halaman utama aplikasi di sini)*
+
+#### Fitur Pembuatan Pesanan
+
+*(Tambahkan screenshot form pembuatan pesanan di sini)*
+
+#### Riwayat Pesanan
+
+*(Tambahkan screenshot tampilan riwayat pesanan di sini)*
+
 # 4. Hasil Pengujian Endpoint
 
 > Dokumentasi Postman dan frontend akan ditambahkan setelah hasil dari M7 dikumpulkan.
