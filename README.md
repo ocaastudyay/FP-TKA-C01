@@ -326,8 +326,7 @@ Penggunaan private IP memungkinkan komunikasi database dilakukan melalui Azure V
 
 ### Dokumentasi
 
-<img width="833" height="157" alt="WhatsApp Image 2026-06-19 at 08 39 10" src="https://github.com/user-attachments/assets/9fd5cb96-5d5b-46f8-9006-09738118ea28" />
-
+<img width="833" height="157" alt="WhatsApp Image 2026-06-19 at 08 39 10" src="https://github.com/user-attachments/assets/4d844e5a-529e-45d6-b3e7-97f4e1672607" />
 
 ---
 
