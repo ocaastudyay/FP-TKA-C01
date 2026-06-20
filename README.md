@@ -326,7 +326,8 @@ Penggunaan private IP memungkinkan komunikasi database dilakukan melalui Azure V
 
 ### Dokumentasi
 
-*(Tambahkan dokumentasi/screenshot hasil implementasi MongoDB dari M3 di sini)*
+<img width="833" height="157" alt="WhatsApp Image 2026-06-19 at 08 39 10" src="https://github.com/user-attachments/assets/9fd5cb96-5d5b-46f8-9006-09738118ea28" />
+
 
 ---
 
