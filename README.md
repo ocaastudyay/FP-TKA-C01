@@ -551,9 +551,7 @@ Dengan total 12 thread aktif, backend tetap mampu melayani banyak request secara
 ### Dokumentasi
 
 <img width="1217" height="296" alt="WhatsApp Image 2026-06-17 at 22 36 49" src="https://github.com/user-attachments/assets/847d8a17-f642-4188-9a78-0ea404cf6400" />
-
-
-
+<img width="1361" height="637" alt="WhatsApp Image 2026-06-17 at 22 36 54" src="https://github.com/user-attachments/assets/f8098d90-b1a7-4880-b77f-92b3dd3465b4" />
 
 # 4. Hasil Pengujian Endpoint
 
