@@ -974,34 +974,31 @@ Dari sisi pemrosesan, *Response Time* pada *50th percentile* (P50) berada di ang
 | Parameter | Nilai |
 |------------|---------|
 | Jumlah User | 550 |
-| Durasi Pengujian | 4 menit 15 detik |
+| Durasi Pengujian | ~4 menit 15 detik |
 
 ### Hasil Pengujian
 
 | Metrik | Nilai |
 |---------|---------|
-| Average Response Time | 151.76 ms |
-| Requests per Second (RPS) | 201.4 |
+| Average Response Time | 28 ms (P50) / 270 ms (P95) |
+| Requests per Second (RPS) | 210.8 |
 | Failure Rate | 0% |
 
 ### Dokumentasi
 
-<img width="1195" height="881" alt="WhatsApp Image 2026-06-19 at 07 59 43" src="https://github.com/user-attachments/assets/bdae3a9f-e675-4b0c-8c0e-b55bb4c246f8" />
+<img width="1195" height="881" alt="WhatsApp Image 2026-06-19 at 07 59 43" src="https://github.com/user-attachments/assets/98c411ac-ac6a-4eb6-a00a-89856691d5f8" />
+
+<img width="1600" height="945" alt="WhatsApp Image 2026-06-20 at 20 38 50" src="https://github.com/user-attachments/assets/8a45d2a1-af22-4c2e-87b4-c73e0a6d7246" />
 
 ### Analisis
 
-Pada pengujian dengan **550 pengguna simultan**, sistem menghasilkan throughput sebesar **201.4 request per second** dengan tingkat kegagalan **0%**. Total request yang berhasil diproses mencapai **51.257 request** selama pengujian berlangsung.
+Pada pengujian skenario konkurensi **550 pengguna simultan**, sistem mencapai performa puncaknya yang paling optimal. Berdasarkan grafik data Locust pada menit ke-3 stabilitas beban (pukul 04:08:08 PM), infrastruktur sanggup menghasilkan throughput tertinggi sebesar **210.8 request per second (RPS)** tanpa adanya satu pun request yang gagal (*Failure Rate* mutlak **0%**). 
 
-Endpoint yang paling sering diakses adalah:
+Dari aspek latensi, sistem memberikan respons yang sangat cepat dengan nilai *50th percentile* (P50) sebesar **28 ms** dan *95th percentile* (P95) terkendali pada **270 ms**, meskipun sempat terjadi lonjakan *response time* di awal fase *ramp-up* akibat inisialisasi koneksi kluster.
 
-| Endpoint | Total Request |
-|-----------|---------------|
-| `/products?[filters]` | 28.021 |
-| `/products/<id>` | 13.958 |
-| `/admin/stats` | 3.477 |
-| `/orders` | 2.596 |
-
-Hasil ini menunjukkan bahwa sistem masih mampu menangani beban tinggi secara stabil dengan performa yang baik.
+Analisis mendalam melalui monitoring resource server (`htop`) memperlihatkan pembagian beban kerja yang timpang namun terukur:
+* **vm-be1 (Dedicated Backend):** Berjalan sangat ringan dengan utilisasi CPU masing-masing core hanya berkisar antara **6.6% - 7.9%** dan penggunaan memori yang minim sebesar **518 MB** dari total kapasitas 3.77 GB.
+* **vm-be2 (Shared Backend + MongoDB):** Mengalami load kerja yang intensif dengan konsumsi CPU terdistribusi rata mencapai **64.2% - 65.3%** pada kedua core, serta penggunaan memori yang meningkat ke angka **786 MB**. Berdasarkan daftar proses, aktivitas komputasi didominasi penuh oleh *database engine* MongoDB (`/usr/bin/mongod`) yang mencatatkan penggunaan CPU individual hingga **121%** guna melayani pencarian, sortasi, dan penulisan data masif dari ratusan user secara simultan.
 
 ---
 
@@ -1033,23 +1030,39 @@ Walaupun demikian, performa sistem masih tergolong baik karena sebagian besar re
 
 | Skenario | User | Avg Response Time | RPS | Failure Rate |
 |----------|------|-------------------|------|--------------|
-| 1 | 100 | 23 ms | 37.43 | 0% |
-| 2 | 300 | 24 ms | 115.37 | 0% |
-| 3 | 500 | Menunggu Data | Menunggu Data | Menunggu Data |
-| 4 | 550 | 151.76 ms | 201.4 | 0% |
-| 5 | 600 | 95 ms | 193.1 | 1% |
+| 1 | 100 | 23 ms (P50) | 37.43 | 0% |
+| 2 | 300 | 24 ms (P50) | 115.37 | 0% |
+| 3 | 500 | 26 ms (P50) / 190 ms (P95) | 182.96 | 0% |
+| 4 | 550 | 28 ms (P50) / 270 ms (P95) | 210.8 | 0% |
+| 5 | 600 | 95 ms (P50) / 370 ms (P95) | 193.1 | 1% |
 
 ### Analisis
 
-Berdasarkan seluruh pengujian yang dilakukan, sistem menunjukkan kemampuan scaling yang baik seiring bertambahnya jumlah pengguna simultan.
+Berdasarkan keseluruhan rangkaian pengujian dari 100 hingga 600 user, sistem arsitektur cloud ini terbukti memiliki kapabilitas scaling horizontal yang baik. 
 
-Pada skenario **100 hingga 300 pengguna**, response time tetap rendah dan tidak ditemukan kegagalan request. Saat jumlah pengguna meningkat menjadi **550 pengguna**, throughput mencapai lebih dari **200 request per second** dengan tingkat keberhasilan **100%**.
+Titik performa **maksimal sekaligus paling optimal** berada pada skenario **550 user**. Melalui validasi grafik Locust dan log resource, pada titik ini resource VM dimanfaatkan secara penuh untuk menghasilkan throughput tertinggi (**210.8 RPS**) dengan efisiensi waktu respons yang luar biasa (P50: 28 ms) dan keandalan sistem bernilai sempurna (0% failure).
 
-Pada skenario tertinggi yaitu **600 pengguna**, sistem masih mampu mempertahankan throughput yang tinggi meskipun mulai muncul kegagalan sebesar **1%**. Kondisi ini menunjukkan bahwa sistem mulai mendekati batas kapasitasnya namun masih mampu beroperasi secara stabil.
+Namun, pengujian htop membongkar adanya potensi *single point of bottleneck* pada infrastruktur ini. Beban komputasi berlebih berpusat pada `vm-be2` karena ia mengemban tugas ganda sebagai pelayan API Flask sekaligus tempat berjalannya database engine MongoDB 7.0. Akibatnya, saat pengujian dipaksa naik ke skala **600 user**, core CPU pada `vm-be2` mengalami saturasi penuh (*over-saturation*) yang berujung pada penurunan throughput menjadi 193.1 RPS dan memicu kegagalan transaksi (*Failure Rate* naik menjadi 1%). 
 
-Secara keseluruhan, kombinasi **Nginx Load Balancer**, **Flask Backend (Gunicorn)**, dan **MongoDB** berhasil menangani ratusan pengguna secara bersamaan dengan tingkat reliabilitas yang tinggi. Hasil pengujian menunjukkan bahwa arsitektur cloud yang diimplementasikan telah memenuhi kebutuhan performa dan skalabilitas untuk skenario Order Processing Service.
+Secara keseluruhan, arsitektur ini sukses memenuhi target awal performa kelompok (RPS ≥ 150) dan berhasil mengelola resource ekonomis Azure dengan efisiensi kerja yang sangat tinggi.
+
+---
 
 # 6. Kesimpulan dan Saran
 
-> Kesimpulan akhir akan disusun berdasarkan hasil implementasi dan load testing yang diperoleh selama proyek berlangsung.
+## 6.1 Kesimpulan
 
+Berdasarkan implementasi, deployment, pengujian REST API, serta visualisasi data komparatif dari load testing menggunakan Locust, dapat ditarik beberapa kesimpulan utama sebagai berikut:
+
+1. **Infrastruktur Fungsional & Ekonomis:** Kelompok 1 berhasil mengimplementasikan dan mengonfigurasi layanan *Order Processing Service* menggunakan arsitektur 3 Virtual Machine di ekosistem Microsoft Azure. Sistem berjalan fungsional, terisolasi dengan aman di dalam Azure Virtual Network, dan sangat efisien secara finansial dengan pengeluaran total **$70.29/bulan** dari pagu anggaran maksimal sebesar $75/bulan.
+2. **Kapasitas Maksimal & Optimal Berada pada 550 User:** Melalui pembuktian empiris dokumen grafik Locust (`image_7a4a15.jpg`), batas kapasitas operasional terbaik dari sistem dicapai pada beban **550 users**. Pada kondisi ini, sistem menembus performa puncak dengan throughput mencapai **210.8 RPS** tanpa kegagalan sistem (*Failure Rate* mutlak **0%**), serta waktu tunggu yang sangat minim (P50: 28 ms dan P95: 270 ms).
+3. **Identifikasi Bottleneck Server melalui Bukti Resource:** Sesuai rekaman data htop (`WhatsApp Image 2026-06-19 at 07.59.43.jpeg`), performa maksimal 550 user memunculkan batasan fisik dari spesifikasi VM. `vm-be1` selaku backend mandiri beroperasi sangat longgar (CPU < 8%). Namun, `vm-be2` yang menampung Flask dan MongoDB sekaligus mengalami tekanan komputasi berat dengan utilisasi CPU mencapai **~65%** pada kedua core-nya akibat proses indexing dan pencarian data dari engine `/usr/bin/mongod` (CPU load mendominasi di angka 121%). Saturasi komputasi pada `vm-be2` inilah yang menjadi penyebab runtuhnya performa sistem ketika diuji di atas 550 user (skenario 600 user).
+
+## 6.2 Saran
+
+Guna mengatasi keterbatasan performa (*bottleneck*) dan mempersiapkan sistem agar mampu menangani skalabilitas pengguna yang jauh lebih masif di masa mendatang, beberapa langkah optimasi berikut sangat disarankan:
+
+1. **De-coupling Layer Database (Solusi Utama):** Memisahkan MongoDB dari `vm-be2` ke dalam satu Virtual Machine dedicated khusus database. Dengan memindahkan basis data ke lingkungan mandiri, kapasitas CPU dan RAM di `vm-be2` akan terbebas penuh, sehingga server tersebut dapat mengalokasikan 5 *gthread workers* secara maksimal seperti halnya `vm-be1`.
+2. **Penerapan Layer Caching (Redis/Memcached):** Mengonfigurasi layer penyimpanan memori sementara (caching) untuk menangani request read-intensive yang berulang, khususnya pada endpoint produk seperti `/products` dan `/products/<id>` yang mencatatkan total hit tertinggi saat pengujian (lebih dari 41.000 request). Caching akan memotong jalur query langsung ke MongoDB, menghemat core CPU server, dan mendongkrak RPS secara signifikan.
+3. **Migrasi Konkurensi ke Model Asynchronous (Gevent):** Melakukan perbaikan terhadap konflik dependency internal pada sistem operasi Ubuntu 22.04 agar deployment WSgi Gunicorn dapat beralih secara aman dari worker tipe `gthread` (native threading) ke `gevent` (greenlet cooperative threading). Hal ini akan mengoptimalkan penanganan request berbasis I/O bound database dengan latensi yang jauh lebih ketat.
+4. **Implementasi VM Scale Sets (Auto-scaling):** Memanfaatkan fitur Azure Virtual Machine Scale Sets (VMSS) pada layer backend. Dengan menentukan batas ambang (threshold) CPU metrics di angka 70%, Azure secara otomatis akan menambah instance backend baru ketika beban user melesat melewati angka 550 user.
