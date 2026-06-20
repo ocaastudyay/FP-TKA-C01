@@ -862,25 +862,7 @@ GET /orders
 
 ---
 
-## 4.4 Pengujian Admin Endpoint
-
-### Statistik Sistem
-
-Endpoint administrator digunakan untuk menampilkan statistik transaksi dan informasi sistem.
-
-**Endpoint**
-
-```http
-GET /admin/stats
-```
-
-### Dokumentasi
-
-<img width="1037" height="790" alt="WhatsApp Image 2026-06-20 at 20 20 32" src="https://github.com/user-attachments/assets/3ccdb44d-7f4b-4133-bfa5-efef0f541e5a" />
-
----
-
-## 4.5 Pengujian Health Check Endpoint
+## 4.4 Pengujian Health Check Endpoint
 
 Endpoint health check digunakan untuk memastikan backend service berjalan dengan baik dan dapat menerima request.
 
@@ -896,7 +878,7 @@ GET /health
 
 ---
 
-## 4.6 Pengujian Admin Endpoint
+## 4.5 Pengujian Admin Endpoint
 
 Endpoint administrator digunakan untuk menampilkan statistik sistem berdasarkan data transaksi yang tersimpan pada database MongoDB.
 
