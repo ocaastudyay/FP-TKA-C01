@@ -441,7 +441,118 @@ Selain itu, backend dikonfigurasi menggunakan fitur auto-restart pada systemd se
 
 ### Dokumentasi
 
-*(Tambahkan dokumentasi/screenshot hasil implementasi Backend Server 1 dari M4 di sini)*
+<img width="1600" height="623" alt="WhatsApp Image 2026-06-17 at 22 23 45 (1)" src="https://github.com/user-attachments/assets/78a8f0d3-ef41-4d47-b585-d96147056c65" />
+<img width="1472" height="639" alt="WhatsApp Image 2026-06-17 at 22 23 45" src="https://github.com/user-attachments/assets/4d31e128-349c-4c33-9016-ff32a50814de" />
+
+---
+
+## 3.3 Implementasi Backend Server 2 (M5)
+
+Backend Server 2 ditempatkan pada VM `vm-be2` dengan public IP `70.153.145.176` dan private IP `10.0.0.7`. Selain menjalankan aplikasi Flask, VM ini juga berfungsi sebagai host MongoDB sehingga backend dapat mengakses database secara langsung melalui localhost.
+
+### Spesifikasi Backend
+
+| Parameter        | Nilai          |
+| ---------------- | -------------- |
+| VM               | vm-be2         |
+| Public IP        | 70.153.145.176 |
+| Private IP       | 10.0.0.7       |
+| Operating System | Ubuntu 22.04   |
+| Framework        | Flask          |
+| WSGI Server      | Gunicorn       |
+| Port             | 5000           |
+| Database Host    | localhost      |
+| Database         | MongoDB 7.0    |
+
+---
+
+### Instalasi Backend
+
+Tahapan deployment backend meliputi:
+
+1. Melakukan update package sistem Ubuntu.
+2. Menginstal Python 3, Pip, dan Git.
+3. Menginstal dependency aplikasi seperti Flask, PyMongo, Gunicorn, Gevent, Python-dotenv, Bcrypt, dan PyJWT.
+4. Melakukan clone repository Final Project dari GitHub.
+5. Melakukan pengujian koneksi database secara manual.
+6. Menjalankan backend sebagai service menggunakan systemd dan Gunicorn.
+
+Pendekatan ini memastikan seluruh komponen backend telah terpasang dan dapat berkomunikasi dengan database sebelum dijalankan sebagai service permanen.
+
+---
+
+### Verifikasi Koneksi Database
+
+Sebelum deployment dilakukan, backend diuji secara manual menggunakan Flask Development Server.
+
+URI koneksi yang digunakan:
+
+```text
+mongodb://<user>:<password>@localhost:27017/orderdb?authSource=admin
+```
+
+Karena MongoDB berada pada VM yang sama, komunikasi dilakukan melalui localhost sehingga menghasilkan latensi yang lebih rendah dibanding komunikasi melalui jaringan antar server.
+
+Keberhasilan pengujian diverifikasi melalui endpoint `/products` yang berhasil mengembalikan data dalam format JSON.
+
+---
+
+### Deployment Menggunakan Gunicorn
+
+Backend dijalankan menggunakan Gunicorn sebagai production WSGI server.
+
+Konfigurasi yang digunakan:
+
+| Parameter         | Nilai        |
+| ----------------- | ------------ |
+| Worker Type       | gthread      |
+| Worker            | 3            |
+| Thread per Worker | 4            |
+| Total Thread      | 12           |
+| Timeout           | 30 detik     |
+| Binding Address   | 0.0.0.0:5000 |
+
+Jumlah worker yang digunakan lebih sedikit dibanding Backend Server 1 karena VM ini juga menjalankan MongoDB sehingga resource sistem harus dibagi secara seimbang.
+
+---
+
+### Konfigurasi Systemd
+
+Backend dikonfigurasi sebagai service bernama:
+
+```text
+flask-be2.service
+```
+
+Service ini dijalankan setelah MongoDB aktif dengan konfigurasi:
+
+```ini
+After=network.target mongod.service
+```
+
+Konfigurasi tersebut memastikan backend tidak berjalan sebelum database siap menerima koneksi.
+
+Keuntungan penggunaan systemd antara lain:
+
+* Service berjalan otomatis saat VM booting.
+* Service melakukan restart otomatis apabila terjadi kegagalan.
+* Backend tetap aktif meskipun sesi SSH ditutup.
+
+---
+
+### Analisis Konfigurasi Backend
+
+Konfigurasi 3 worker dan 4 thread dipilih untuk menjaga keseimbangan resource antara Flask dan MongoDB yang berjalan pada VM yang sama.
+
+Dengan total 12 thread aktif, backend tetap mampu melayani banyak request secara bersamaan tanpa mengganggu performa database. Pendekatan ini memberikan stabilitas yang lebih baik selama pengujian endpoint maupun load testing.
+
+---
+
+### Dokumentasi
+
+<img width="1217" height="296" alt="WhatsApp Image 2026-06-17 at 22 36 49" src="https://github.com/user-attachments/assets/847d8a17-f642-4188-9a78-0ea404cf6400" />
+
+
 
 
 # 4. Hasil Pengujian Endpoint
