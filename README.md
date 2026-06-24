@@ -89,7 +89,8 @@ Seluruh request dari pengguna akan diterima oleh Nginx Load Balancer dan didistr
 
 ### Diagram Infrastruktur
 
-<img width="1489" height="891" alt="image" src="https://github.com/user-attachments/assets/a6492267-e7a3-4cd3-812e-069901ae8df8" />
+<img width="2475" height="1440" alt="image" src="https://github.com/user-attachments/assets/0eea8c5d-3325-4cf3-964c-dca42c687c2e" />
+
 
 Gambar di atas menunjukkan arsitektur cloud yang digunakan pada proyek ini. Nginx bertindak sebagai reverse proxy sekaligus load balancer yang mendistribusikan request ke dua backend Flask menggunakan metode Round Robin. Backend kemudian berkomunikasi dengan MongoDB melalui jaringan private Azure.
 
@@ -108,8 +109,8 @@ Gambar di atas menunjukkan arsitektur cloud yang digunakan pada proyek ini. Ngin
 | VM | Size (Azure) | vCPU | RAM | Role | Harga/bulan |
 |---|---|:---:|:---:|---|:---:|
 | vm-lb | Standard_B2ats_v2 | 2 | 1 GB | Nginx Load Balancer — Round-robin + Keepalive 32 + Serve Frontend | $7.81 |
-| vm-be1 | Standard_B2als_v2 | 2 | 4 GB | Backend #1 — Flask + Gunicorn gevent (5 workers) | $31.24 |
-| vm-be2 | Standard_B2als_v2 | 2 | 4 GB | Backend #2 — Flask + Gunicorn gevent (3 workers) + MongoDB 7.0 | $31.24 |
+| vm-be1 | Standard_B2als_v2 | 2 | 4 GB | Backend #1 — Flask + Gunicorn gthread (5 workers × 4 threads = 20 threads) | $31.24 |
+| vm-be2 | Standard_B2als_v2 | 2 | 4 GB | Backend #2 — Flask + Gunicorn gthread (3 workers × 4 threads = 12 threads) + MongoDB 7.0 | $31.24 |
 | **Total** | | | | | **$70.29/bulan** |
 
 > **Budget maksimal:** $75/bulan (sisa $4.71 digunakan sebagai buffer biaya network egress)
@@ -165,26 +166,36 @@ Nginx bertugas hanya sebagai reverse proxy dan load balancer — meneruskan requ
 Fitur tambahan yang diaktifkan:
 - **Keepalive 32 koneksi** ke upstream — menghilangkan overhead TCP handshake berulang, berkontribusi sekitar 10–15% peningkatan throughput tanpa biaya tambahan.
 - **Serve static file** — Frontend (index.html + styles.css) langsung dikirim dari Nginx tanpa menyentuh backend, menghemat resource BE untuk memproses request API.
+- **Routing API** — semua endpoint (`/auth`, `/products`, `/orders`, `/order`, `/admin`, `/health`) diteruskan ke backend cluster melalui satu entry point yang sama sehingga tidak memerlukan konfigurasi CORS tambahan.
 
 ### 2. vm-be1 — Standard_B2als_v2 (4 GB RAM, $31.24/bulan)
 
-Backend Flask yang dijalankan dengan Gunicorn membutuhkan RAM yang cukup untuk menampung banyak worker process secara bersamaan. Dengan 4 GB RAM yang seluruhnya bebas digunakan untuk proses aplikasi (tidak berbagi dengan MongoDB), vm-be1 dapat menjalankan **5 gevent worker** secara optimal.
+Backend Flask dijalankan menggunakan Gunicorn dengan worker tipe **gthread** (native thread). Dengan 4 GB RAM yang seluruhnya bebas digunakan untuk proses aplikasi (tidak berbagi dengan MongoDB), vm-be1 dapat menjalankan **5 worker × 4 thread = 20 concurrent thread** secara optimal.
 
-Alasan memilih **gevent worker** dibanding sync worker default:
-- Sync worker memblokir seluruh process selama menunggu respons database, sehingga hanya bisa melayani satu request per worker dalam satu waktu.
-- Gevent worker menggunakan model kooperatif (green thread), sehingga satu worker bisa menangani puluhan request sekaligus selama ada jeda I/O.
-- Estimasi peningkatan RPS dari perubahan ini saja sekitar **30–40%**.
+Rencana awal deployment menggunakan worker tipe **gevent**, namun saat implementasi ditemukan konflik dependency `zope.event` pada Ubuntu 22.04 yang menyebabkan Gunicorn gagal menjalankan worker gevent. Sebagai solusi digunakan worker tipe **gthread** yang merupakan implementasi bawaan Gunicorn tanpa dependency tambahan.
+
+| Aspek | gevent | gthread |
+|---|---|---|
+| Model Konkurensi | Green Thread (kooperatif) | Native Thread OS |
+| Dependency Tambahan | Ya (`zope.event`) | Tidak |
+| Kompatibilitas Ubuntu 22.04 | Konflik dependency | ✅ Stabil |
+| Cocok untuk I/O Bound | Ya | Ya |
+
+Meskipun menggunakan gthread, performa tetap optimal karena aplikasi ini bersifat **I/O-bound** — setiap request menghabiskan sebagian besar waktunya menunggu respons MongoDB, bukan melakukan komputasi CPU. Ketika sebuah thread menunggu balasan dari database, Python melepas GIL sehingga thread lain dalam worker yang sama dapat langsung melayani request berikutnya.
 
 ### 3. vm-be2 — Standard_B2als_v2 (4 GB RAM, $31.24/bulan)
 
-Sama seperti vm-be1 namun hanya menjalankan **3 gevent worker** karena sebagian RAM-nya harus disisihkan untuk MongoDB yang berjalan di VM yang sama. Pembagian ini mencegah kondisi Out-of-Memory (OOM) saat load test tinggi yang dapat menyebabkan crash pada salah satu proses.
+Sama seperti vm-be1 namun hanya menjalankan **3 worker × 4 thread = 12 concurrent thread** karena sebagian RAM-nya harus disisihkan untuk MongoDB yang berjalan di VM yang sama. Pembagian ini mencegah kondisi Out-of-Memory (OOM) saat load test tinggi yang dapat menyebabkan crash pada salah satu proses.
+
+Service backend dikonfigurasi dengan `After=mongod.service` pada systemd, memastikan Flask tidak berjalan sebelum MongoDB siap menerima koneksi.
 
 Estimasi pembagian RAM vm-be2:
+
 | Proses | Estimasi RAM |
 |---|---|
-| Flask + Gunicorn (3 workers) | ~600 MB |
+| Flask + Gunicorn (3 workers × 4 threads) | ~600 MB |
 | MongoDB 7.0 (buffer + index) | ~1.5 GB |
-| Sistem operasi (Ubuntu) | ~300 MB |
+| Sistem operasi (Ubuntu 22.04) | ~300 MB |
 | Buffer/headroom | ~1.6 GB |
 | **Total** | **~4 GB** |
 
@@ -193,8 +204,20 @@ Estimasi pembagian RAM vm-be2:
 Dengan budget $75/bulan, menambah VM keempat khusus untuk database akan memaksa downgrade spesifikasi backend atau melampaui anggaran. Penempatan MongoDB di vm-be2 merupakan trade-off yang terukur karena:
 
 1. Koneksi dari vm-be1 ke MongoDB tetap melalui **Private VNet (10.0.0.0/24)** dengan latensi sangat rendah di bawah 1 ms — jauh lebih baik dibanding koneksi lintas internet.
-2. Query yang dijalankan (`insert`, `find by order_id`, `find all sort by created_at`) relatif ringan jika index sudah dibuat dengan benar.
-3. **Index pada `created_at DESC` dan `order_id` (unique)** memastikan query tidak melakukan full collection scan meski data sudah mencapai ratusan ribu dokumen.
+2. Query yang dijalankan (`insert`, `find by order_id`, `find all sort by created_at`, `find by user_id`, `aggregate by status`) relatif ringan karena seluruh collection sudah diindeks dengan benar.
+3. Index yang dibuat berdasarkan analisis query nyata dari `app.py` memastikan tidak ada full collection scan meski data mencapai ratusan ribu dokumen.
+
+Index yang diterapkan per collection:
+
+| Collection | Index | Fungsi |
+|---|---|---|
+| **orders** | `created_at (-1)` | Sorting order terbaru (`GET /orders`) |
+| **orders** | `order_id (unique)` | Pencarian per ID (`GET/PUT /orders/<id>`) |
+| **orders** | `user_id + created_at` | Riwayat order per pengguna |
+| **orders** | `status` | Agregasi statistik (`GET /admin/stats`) |
+| **products** | `is_active + category` | Filter produk per kategori |
+| **products** | `is_active + created_at` | Sorting produk aktif |
+| **users** | `email (unique)` | Login dan registrasi (`POST /auth/login`) |
 
 > **Catatan:** Jika budget bertambah, prioritas pertama adalah memindahkan MongoDB ke VM dedicated agar vm-be2 dapat menjalankan 5 worker penuh, kemudian menambahkan backend ketiga untuk meningkatkan total kapasitas.
 
@@ -203,9 +226,9 @@ Dengan budget $75/bulan, menambah VM keempat khusus untuk database akan memaksa 
 | Kondisi | Estimasi RPS |
 |---|:---:|
 | Tanpa optimasi (sync worker, tanpa index) | ~50–70 |
-| + MongoDB index (`created_at`, `order_id`) | ~100–130 |
-| + Gevent worker | ~130–170 |
-| + Nginx keepalive 32 | ~150–190 |
+| + MongoDB index (7 index pada 3 collection) | ~100–130 |
+| + Gunicorn gthread (20 + 12 concurrent threads) | ~130–180 |
+| + Nginx keepalive 32 | ~150–200 |
 
 Target minimum untuk nilai load testing: **≥ 150 RPS**
 ---
