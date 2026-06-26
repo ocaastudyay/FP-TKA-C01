@@ -4,18 +4,20 @@
 
 ## Order Processing Service menggunakan Microsoft Azure
 
-### Kelompok 1
+## Kelompok 1
 
-| No | Nama | NRP |
-| :---: | :--- | :---: |
-| 1 | Diva Aulia Rosa | 5027241003 |
-| 2 | Shinta Alya Ramadani | 5027241016 |
-| 3 | Zaenal Mustofa | 5027241018 |
-| 4 | Raya Ahmad Syarif | 5027241041 |
-| 5 | Daniswara Fausta Novanto | 5027241050 |
-| 6 | Hafiz Ramadhan | 5027241096 |
-| 7 | Naruna Vicranthyo Putra Gangga | 5027241105 |
-| 8 | Adinda Cahya Pramesti | 5027241117 |
+## Anggota & Pembagian Tugas
+
+| Member | Nama & NRP | Role | Tanggung Jawab Utama | Deliverable |
+| :---: | :--- | :--- | :--- | :--- |
+| **M1** | Shinta Alya Ramadani<br><sub>5027241016</sub> | Cloud Architect | Provision semua VM, setup network/firewall | 4 VM running, IP tersedia |
+| **M2** | Adinda Cahya Pramesti<br><sub>5027241117</sub> | Cloud Architect | Buat diagram draw.io + tabel harga | File `.drawio` + screenshot |
+| **M3** | Raya Ahmad Syarif<br><sub>5027241041</sub> | Database Engineer | Setup MongoDB, restore dump, buat indexes | MongoDB running + indexes verified |
+| **M4** | Hafiz Ramadhan<br><sub>5027241096</sub> | Backend Engineer | Deploy BE di vm-be1 (Gunicorn + systemd) | BE1 running di port 5000 |
+| **M5** | Naruna Vicranthyo Putra Gangga<br><sub>5027241105</sub> | Backend Engineer | Deploy BE di vm-be2 (Gunicorn + systemd) | BE2 running di port 5000 |
+| **M6** | Zaenal Mustofa<br><sub>5027241018</sub> | DevOps / LB | Setup Nginx LB + serve FE | LB routing ke BE1 & BE2 |
+| **M7** | Daniswara Fausta Novanto<br><sub>5027241050</sub> | QA Engineer | Test semua endpoint Postman + screenshot FE | Screenshot semua endpoint |
+| **M8** | Diva Aulia Rosa<br><sub>5027241003</sub> | Technical Writer | Tulis README.md + kumpulkan semua hasil | README.md lengkap di GitHub |
 
 ---
 
