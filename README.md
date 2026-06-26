@@ -702,15 +702,15 @@ Selain itu, penggunaan private IP antar VM meningkatkan keamanan komunikasi kare
 
 #### Validasi Konfigurasi Nginx
 
-*(Tambahkan screenshot hasil `sudo nginx -t` di sini)*
+<img width="607" height="120" alt="Screenshot 2026-06-25 115832" src="https://github.com/user-attachments/assets/520389e8-97f3-462f-b7b4-4930993f1c42" />
 
 #### Status Service Nginx
 
-*(Tambahkan screenshot hasil `sudo systemctl status nginx` di sini)*
+<img width="1153" height="373" alt="Screenshot 2026-06-25 115918" src="https://github.com/user-attachments/assets/e2f62ec8-f8d5-4783-a7e6-40a5c6cf1498" />
 
 #### Health Check Backend
 
-*(Tambahkan screenshot hasil `curl http://localhost/health` di sini)*
+<img width="579" height="72" alt="Screenshot 2026-06-25 115945" src="https://github.com/user-attachments/assets/dafe1446-8c79-4399-abcf-9957a461117b" />
 
 ---
 
