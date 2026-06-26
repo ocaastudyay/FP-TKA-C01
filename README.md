@@ -796,19 +796,19 @@ Pendekatan ini menyederhanakan deployment, mengurangi kompleksitas konfigurasi c
 
 #### Halaman Login
 
-*(Tambahkan screenshot halaman Login di browser di sini)*
+<img width="1337" height="664" alt="Screenshot 2026-06-26 201129" src="https://github.com/user-attachments/assets/efb2f1f6-f050-43b5-ab0f-22b5c3e6ea56" />
 
 #### Halaman Utama Setelah Login
 
-*(Tambahkan screenshot dashboard atau halaman utama aplikasi di sini)*
+<img width="1329" height="668" alt="Screenshot 2026-06-26 201745" src="https://github.com/user-attachments/assets/334ef826-3549-4fab-9131-a69eaa6efe08" />
 
 #### Fitur Pembuatan Pesanan
 
-*(Tambahkan screenshot form pembuatan pesanan di sini)*
+<img width="760" height="427" alt="Screenshot 2026-06-26 201925" src="https://github.com/user-attachments/assets/a8d4fd0d-8c7c-4862-b2b9-53af0fd58494" />
 
 #### Riwayat Pesanan
 
-*(Tambahkan screenshot tampilan riwayat pesanan di sini)*
+<img width="762" height="424" alt="Screenshot 2026-06-26 202206" src="https://github.com/user-attachments/assets/83e40035-049a-4906-92e8-03ba372e6dd9" />
 
 # 4. Hasil Pengujian Endpoint
 
